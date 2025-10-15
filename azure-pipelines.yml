@@ -1,0 +1,56 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  TF_VERSION: '1.6.0'
+  WORKING_DIR: './'
+
+stages:
+- stage: Terraform
+  displayName: "Terraform Deploy to Azure"
+  jobs:
+  - job: DeployInfra
+    displayName: "Run Terraform Plan and Apply"
+    steps:
+
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      displayName: "Install Terraform"
+      inputs:
+        terraformVersion: $(TF_VERSION)
+
+    - task: AzureCLI@2
+      displayName: "Terraform Init"
+      inputs:
+        azureSubscription: "My-Azure-Service-Connection"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          cd $(WORKING_DIR)
+          terraform init
+
+    - task: AzureCLI@2
+      displayName: "Terraform Plan"
+      inputs:
+        azureSubscription: "My-Azure-Service-Connection"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          cd $(WORKING_DIR)
+          terraform plan -out=tfplan
+
+    - task: AzureCLI@2
+      displayName: "Terraform Apply"
+      inputs:
+        azureSubscription: "My-Azure-Service-Connection"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          cd $(WORKING_DIR)
+          terraform apply -auto-approve tfplan
